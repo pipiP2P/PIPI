@@ -27,13 +27,6 @@ def create_files_message():
     return '$'.join(string_list)
 
 
-def create_files_message():
-    string_list = []
-    for cur_file in MY_FILES:
-        string_list.append(cur_file.to_string())
-    return '$'.join(string_list)
-
-
 def file_exists(file_hash, client_socket):
     files_with_sha1 = get_all_files()
     val = 0
@@ -65,7 +58,7 @@ def udp_connection_handler():
                     elif list_length == 3:
                         protocol_number, file_hash, parts_numbers = all_list
                     elif list_length == 1:
-                        print "[-] Received bad data!"
+                        print all_list[0]
             except:
                 print "[-] Error trying to analyse or send info"
     time.sleep(0.001)
