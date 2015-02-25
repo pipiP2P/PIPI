@@ -1,10 +1,10 @@
--++
 MESSAGE_LENGTHS = [2, 3]
 FILE_REQUEST = '1'
 FILE_RESPONSE = '2'
 PART_REQUEST = '3'
 PART_RESPONSE = '4'
 COMMANDS_NUMS = [FILE_REQUEST, FILE_RESPONSE, PART_REQUEST, PART_RESPONSE]
+
 
 def Convert_Message(message):
     message = message.split(';*;')
@@ -49,7 +49,6 @@ def Convert_Message(message):
                 return ['Protocol Error: Wrong Structure']
 
             return [PART_REQUEST, file_name, partition]
-
 
         return ['Protocol Error: Wrong Structure']
 
