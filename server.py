@@ -3,14 +3,14 @@ import select
 import time
 from threading import Thread
 
-addresses = []  # Addresses of all the connected peers
+addresses = [] # Addresses of all the connected peers
 messages_to_send = []
 open_client_sockets = []
-heartbeat_responses = []  # List of sockets that answered to heartbeat request
+heartbeat_responses = [] # List of sockets that answered to heartbeat request
 server_socket = socket.socket()
 server_socket.bind(('0.0.0.0', 50000))
 server_socket.listen(100)
-sockets_and_ips = {}  # List of tuples of IP and socket
+sockets_and_ips = {} # List of tuples of IP and socket
 
 
 def send_message_to_all(content):
