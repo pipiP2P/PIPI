@@ -2,6 +2,7 @@ import socket
 import select
 import time
 from threading import Thread
+from File import *
 
 addresses = [] # Addresses of all the connected peers
 messages_to_send = []
@@ -11,6 +12,8 @@ server_socket = socket.socket()
 server_socket.bind(('0.0.0.0', 50000))
 server_socket.listen(100)
 sockets_and_ips = {} # List of tuples of IP and socket
+FILES = []
+STRING_FILES = []
 
 
 def send_message_to_all(content):
@@ -42,7 +45,7 @@ def check_for_responses():
 def send_heartbeat(wlist):
     for client in wlist:
         try:
-            client.send("ping")
+            client.send("ping" + '$'.join(STRING_FILES))
         except:
             user_disconnected(client)
 
@@ -69,6 +72,17 @@ def send_waiting_messages(write_list):
                         user_disconnected(client_socket)
         messages_to_send.remove(message)
 
+
+def add_files(files_list):
+    files_list = files_list.split('$')
+    for cur_file in files_list:
+        cur_file = cur_file.split(';')
+        if len(cur_file) == 5:
+            if ';'.join(cur_file) not in STRING_FILES:
+                STRING_FILES.append(';'.join(cur_file))
+                FILES.append(File_Info(cur_file[0], cur_file[1], cur_file[2], cur_file[3], cur_file[4]))
+
+
 thread = Thread(target=start_pinging_till_death, args=[])
 thread.start()
 while True:
@@ -80,6 +94,7 @@ while True:
             open_client_sockets.append(new_socket)
             print "Received new connection " + address[0]
             if address[0] not in addresses:
+                new_socket.send(';'.join(addresses))
                 addresses.append(address[0])
                 sockets_and_ips[address[0]] = new_socket
                 heartbeat_responses.append(new_socket)
@@ -94,9 +109,13 @@ while True:
                 if data == "":
                     #Remove socket and notify
                     user_disconnected(current_socket)
+
                 elif data == "pong":
                     heartbeat_responses.append(current_socket)
                     print "RECEIVED PONG"
+
+                else:
+                    add_files(data)
             except:
                 # Client connection closed, remove him
                 user_disconnected(current_socket)
