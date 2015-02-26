@@ -27,21 +27,47 @@ def create_files_message():
     return '$'.join(string_list)
 
 
-def file_exists(file_hash, client_socket):
-    files_with_sha1 = get_all_files()
-    val = 0
-    for current_file in files_with_sha1:
-        if current_file[1] == file_hash:
-            reply_message = [FILE_RESPONSE, '1', current_file[1], parts_num, str(get_size(current_file[0]))]
-            client_socket.send(';'.join(reply_message))
-            val = 1
-    if val == 0:
-        reply_message = [FILE_RESPONSE, '0', '0', '0', '0']
-        client_socket.send(';'.join(reply_message))
+def send_search_answer_true(file_found, client_socket):
+    reply_message = [FILE_RESPONSE, '1', file_found.get_hash(), file_found.get_num_of_parts(), file_found.get_size()]
+    client_socket.send(';'.join(reply_message))
+    print "We have found this hash " + file_hash
+
+
+def send_search_answer_false(requested_hash, client_socket):
+    print "We didn't have this hash in our file library:" + requested_hash
+    reply_message = [FILE_RESPONSE, '0', '0', '0', '0']
+    client_socket.send(';'.join(reply_message))
+    
+def file_exists(file_hash):
+    all_files = get_all_files()
+    for current_file in all_files:
+        if current_file.get_hash() == file_hash:
+            # We found the file
+            return current_file
+    return false
+def question_file_exists(file_hash, client_socket):
+    current_file = file_exists(file_hash)
+    if current_file:
+        send_search_answer_true(current_file, client_socket)
+    else:
+        send_search_answer_false(file_hash, client_socket)
+
+
+def add_files(files_list):
+    files_list = files_list.split('$')
+    for cur_file in files_list:
+        cur_file = cur_file.split(';')
+        if len(cur_file) == 5:
+            if ';'.join(cur_file) not in OTHERS_FILES:
+                OTHERS_FILES.append(';'.join(cur_file))
+
+def handle_sending_part(file_requested, part_number, client_socket):
+    file_content = file_requested.get_file_content(part_number)
+    client_socket.send(file_content)
 
 
 def udp_connection_handler():
-    others_files_with_info = []
+    files_we_can_share = get_all_files()
     while True:
         rlist, wlist, xlist = select.select([udp_socket], [udp_socket], [])
         for current_socket in rlist:
@@ -50,21 +76,31 @@ def udp_connection_handler():
                 if data_received != "":
                     all_list = convert_message(data_received)
                     list_length = len(all_list)
-                    if list_length == 2:
+                    if list_length == 1:
+                        # Error while analysing the message
+                        print all_list[0]
+                    elif list_length == 2:
                         # Do we have the file?
                         # We will search our special directory to find the file name requested
                         protocol_number, file_hash = all_list
-                        file_exists(file_hash, current_socket)
+                        question_file_exists(file_hash, current_socket)
+
                     elif list_length == 3:
-                        protocol_number, file_hash, parts_numbers = all_list
-                    elif list_length == 1:
-                        print all_list[0]
+                        # We were requested parts of the file we are sharing
+                        protocol_number, file_hash, requested_parts_numbers = all_list
+                        file_object = file_exists(file_hash)
+                        if file_requested:
+                            parts_number = file_object.get_num_of_parts()
+                            for part_number in requested_parts_numbers:
+                                if part_number in parts_number:
+                                    # We have the requested part
+                                    print "We have this part!"
             except:
                 print "[-] Error trying to analyse or send info"
     time.sleep(0.001)
 
 client_socket = socket.socket()
-client_socket.connect(('10.20.239.230', 50000))
+client_socket.connect(('10.20.88.208', 50000))
 udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 udp_socket.bind(('', UDP_PORT))
 thread = Thread(target=udp_connection_handler, args=[])
@@ -77,6 +113,7 @@ while True:
             print "Received ping, sending back PONG"
             add_files(data[4:len(data)-1])
             current_socket.send("pong")
+            
         elif data.startswith("remove "):
             ip_to_remove = data.split(' ')
             if len(ip_to_remove) == 2:
