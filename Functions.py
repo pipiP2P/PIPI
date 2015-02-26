@@ -2,12 +2,8 @@ from win32com.shell import shell, shellcon
 import hashlib
 import os
 from os import listdir
-from os.path import isfile, join
+from os.path import *
 from File import File_Info
-import Tkinter
-import tkMessageBox
-import win32api
-import win32con
 import ctypes
 
 
