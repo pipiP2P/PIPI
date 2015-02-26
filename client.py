@@ -17,7 +17,7 @@ MY_FILES = []
 OTHERS_FILES = []
 ADDRESSES = []
 MY_ADDR = socket.gethostbyname(socket.gethostname())
-time = int(time.time())
+init_time = int(time.time())
 
 
 def create_files_message():
@@ -30,7 +30,7 @@ def create_files_message():
 def send_search_answer_true(file_found, client_socket):
     reply_message = [FILE_RESPONSE, '1', file_found.get_hash(), file_found.get_num_of_parts(), file_found.get_size()]
     client_socket.send(';'.join(reply_message))
-    print "We have found this hash " + file_hash
+    print "We have found this hash " + file_found.get_hash()
 
 
 def send_search_answer_false(requested_hash, client_socket):
@@ -44,7 +44,7 @@ def file_exists(file_hash):
         if current_file.get_hash() == file_hash:
             # We found the file
             return current_file
-    return false
+    return False
 def question_file_exists(file_hash, client_socket):
     current_file = file_exists(file_hash)
     if current_file:
@@ -89,7 +89,7 @@ def udp_connection_handler():
                         # We were requested parts of the file we are sharing
                         protocol_number, file_hash, requested_parts_numbers = all_list
                         file_object = file_exists(file_hash)
-                        if file_requested:
+                        if file_object:
                             parts_number = file_object.get_num_of_parts()
                             for part_number in requested_parts_numbers:
                                 if part_number in parts_number:
@@ -100,7 +100,7 @@ def udp_connection_handler():
     time.sleep(0.001)
 
 client_socket = socket.socket()
-client_socket.connect(('10.20.88.208', 50000))
+client_socket.connect(('10.10.10.22', 50000))
 udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 udp_socket.bind(('', UDP_PORT))
 thread = Thread(target=udp_connection_handler, args=[])
@@ -109,7 +109,7 @@ while True:
     rlist, wlist, xlist = select.select([client_socket], [client_socket], [])
     for current_socket in rlist:
         data = current_socket.recv(1024)
-        if data.stratswith("ping"):
+        if data.startswith("ping"):
             print "Received ping, sending back PONG"
             add_files(data[4:len(data)-1])
             current_socket.send("pong")
@@ -130,7 +130,7 @@ while True:
 
     for socket in wlist:
         current_time = int(time.time())
-        if current_time - time >= 30:
-            time = current_time
+        if current_time - init_time >= 30:
+            init_time = current_time
             socket.send(create_files_message())
     time.sleep(0.001)
