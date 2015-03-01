@@ -11,9 +11,12 @@ heartbeat_responses = [] # List of sockets that answered to heartbeat request
 server_socket = socket.socket()
 server_socket.bind(('0.0.0.0', 50000))
 server_socket.listen(100)
-sockets_and_ips = {} # List of tuples of IP and socket
+sockets_and_ips = {} # Dictionary of IP and socket
 FILES = []
 STRING_FILES = []
+
+def debug_print(dbg_info):
+    print dbg_info
 
 
 def send_message_to_all(content):
@@ -24,7 +27,7 @@ def send_message_to_all(content):
 def user_disconnected(client_socket):
     for ip in sockets_and_ips.keys():
         if sockets_and_ips[ip] == client_socket:
-            print ip, 'Disconnected'
+            debug_print(ip + 'Disconnected')
             del sockets_and_ips[ip]
             break
     client_socket.close()
@@ -36,6 +39,8 @@ def user_disconnected(client_socket):
 def check_for_responses():
     for socket in open_client_sockets:
         if socket not in heartbeat_responses:
+            # User didn't response to our ping
+            debug_print("%s hasn't responded to our ping!".format(sockets_and_ips[socket]))
             user_disconnected(socket)
         else:
             # The client responded, just delete the heartbeat response from list
@@ -51,8 +56,13 @@ def send_heartbeat(wlist):
 
 
 def start_pinging_till_death():
+    """
+    Manages the heartbeat system.
+    Sends ping to the connected peers and
+    checks after 30 seconds who hasn't responded
+    """
     while True:
-        print "New round of pinging"
+        debug_print("New round of pinging")
         rlist, wlist, xlist = select.select([server_socket] + open_client_sockets, open_client_sockets, [])
         send_heartbeat(wlist)
         time.sleep(30)
@@ -67,7 +77,7 @@ def send_waiting_messages(write_list):
                 if client_socket is not this_socket:
                     try:
                         client_socket.send(data)
-                        print "Sent data:" + data
+                        debug_print("Send data:" + data )
                     except:
                         user_disconnected(client_socket)
         messages_to_send.remove(message)
@@ -92,16 +102,17 @@ while True:
         if current_socket is server_socket:
             (new_socket, address) = server_socket.accept()
             open_client_sockets.append(new_socket)
-            print "Received new connection " + address[0]
+            debug_print("Received new connection " + address[0])
             if address[0] not in addresses:
-                new_socket.send(';'.join(addresses))
-                addresses.append(address[0])
-                sockets_and_ips[address[0]] = new_socket
+                # We have a unique connection
+                new_socket.send(';'.join(addresses))  # Send the connected socket the other peers IPs
+                addresses.append(address[0])  # Add his address to the connected peers
+                sockets_and_ips[address[0]] = new_socket  # Add him to the socket-IP dictionary
                 heartbeat_responses.append(new_socket)
-                messages_to_send.append((current_socket, address[0]))
+                messages_to_send.append((current_socket, address[0]))  # Send everyone that the user connected
                 wlist.append(new_socket)
             else:
-                print "This user already connected to server from the same IP"
+                debug_print("This user already connected to server from the same IP")
                 
         else:
             try:
@@ -110,14 +121,12 @@ while True:
                     #Remove socket and notify
                     user_disconnected(current_socket)
 
-                elif data == "pong":
+                elif data == "pong":  ###################################### change to startswith ############
                     heartbeat_responses.append(current_socket)
-                    print "RECEIVED PONG"
-
-                else:
-                    add_files(data)
+                    debug_print("Received pong from: " + sockets_and_ips[current_socket])
             except:
                 # Client connection closed, remove him
                 user_disconnected(current_socket)
+
     send_waiting_messages(wlist)
     time.sleep(0.001)
