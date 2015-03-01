@@ -25,7 +25,7 @@ def get_file_object(file_path, name):
     """
     _hash = sha1_of_file(file_path + "\\" + name)
     file_size = os.path.getsize(file_path)
-    desc_path = PATH + "\\" + sha1_of_file(file_path + "\\" + name) + ".txt"
+    desc_path = PATH + "\\" + _hash + ".txt"
     if os.path.isfile(desc_path):
         description = open(desc_path, 'r').read()
     else:
