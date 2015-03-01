@@ -22,7 +22,7 @@ class File_Info:
 
     def get_file_content(self, part_number):
         # return the content of file at part number
-        file_path = "C:\\Users\\Ben\\Desktop\\PiPi\\" + self.name
+        file_path = PATH + self.name
         file_object = file_path.open('rb')
         file_content = file_object.read()
         file_object.close()
