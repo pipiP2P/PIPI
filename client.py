@@ -2,9 +2,10 @@ import socket
 import select
 import time
 from threading import Thread
-from File import *
+
 from Protocol import *
 from Functions import *
+
 
 MESSAGE_LENGTHS = [2, 3, 4, 5]
 FILE_REQUEST = '1'
@@ -144,33 +145,34 @@ except:
 
 thread = Thread(target=udp_connection_handler, args=[])
 thread.start()
-while True:
-    rlist, wlist, xlist = select.select([client_socket], [client_socket], [])
-    for current_socket in rlist:
-        data = current_socket.recv(1024)
-        print data
-        if data.startswith("ping"):
-            debug_print( "Received ping, sending back PONG")
-            # add_files(data[4:])
-            current_socket.send("pong")
-            
-        elif data.startswith("remove "):
-            ip_to_remove = data.split(' ')
-            if len(ip_to_remove) == 2:
-                ip_to_remove = ip_to_remove[1]
-                if ip_to_remove in ADDRESSES:
-                    ADDRESSES.remove(ip_to_remove)
-                    debug_print( "Removed " + ip_to_remove + "from list")
-        else:
-            data = data.split(';')
-            for address in data:
-                if address != MY_ADDR:
-                    ADDRESSES.append(address)
-                    debug_print( "Received new connection from: " + address)
+if __name__ == '__main__':
+    while True:
+        rlist, wlist, xlist = select.select([client_socket], [client_socket], [])
+        for current_socket in rlist:
+            data = current_socket.recv(1024)
+            print data
+            if data.startswith("ping"):
+                debug_print("Received ping, sending back PONG")
+                # add_files(data[4:])
+                current_socket.send("pong")
 
-    for socket in wlist:
-        current_time = int(time.time())
-        if current_time - init_time >= 30:
-            init_time = current_time
-            #socket.send(create_files_message())
-    time.sleep(0.001)
+            elif data.startswith("remove "):
+                ip_to_remove = data.split(' ')
+                if len(ip_to_remove) == 2:
+                    ip_to_remove = ip_to_remove[1]
+                    if ip_to_remove in ADDRESSES:
+                        ADDRESSES.remove(ip_to_remove)
+                        debug_print("Removed " + ip_to_remove + "from list")
+            else:
+                data = data.split(';')
+                for address in data:
+                    if address != MY_ADDR:
+                        ADDRESSES.append(address)
+                        debug_print("Received new connection from: " + address)
+
+        for socket in wlist:
+            current_time = int(time.time())
+            if current_time - init_time >= 30:
+                init_time = current_time
+                # socket.send(create_files_message())
+        time.sleep(0.001)
